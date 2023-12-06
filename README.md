@@ -1,4 +1,4 @@
-# Field arithmetic for p =$2^{255}-19$ using radix-$2ˆ{51}$
+# Field arithmetic for p =2^255-19 using radix-2ˆ51
 
 This repo contains a simple implementation of addition, subtraction and multiplication for field elements in a finite field modulo $2^{255}-19$. It follow the techniques discussed in [this presentation](https://cryptojedi.org/peter/data/pairing-20131122.pdf) by [Peter Schwabe](https://cryptojedi.org/peter/index.shtml).
 
