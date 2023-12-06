@@ -2,7 +2,7 @@
 
 This repo contains a simple implementation of addition, subtraction and multiplication for field elements in a finite field modulo $2^{255}-19$. It follow the techniques discussed in [this presentation](https://cryptojedi.org/peter/data/pairing-20131122.pdf) by [Peter Schwabe](https://cryptojedi.org/peter/index.shtml).
 
-In particular, it uses a radix-$2ˆ{51}$, i.e every field element $a$ is represented as $(a_0,..,a_5)$ where $a = a_02^0+a_12^{51}+a_22^{102}+a_32^{153}+a_42^{204}$. For more details see [these slides](https://cryptojedi.org/peter/data/pairing-20131122.pdf).
+In particular, it uses a radix- $2^{51}$, i.e every field element $a$ is represented as $(a_0,..,a_5)$ where $a = a_02^0+a_12^{51}+a_22^{102}+a_32^{153}+a_42^{204}$. For more details see [these slides](https://cryptojedi.org/peter/data/pairing-20131122.pdf).
 
 The goal of this code was to get familiar with Golang. It is not intended to be a reference implementation and should be used solely for educational purposes.
 
@@ -35,46 +35,40 @@ This is in *reduced* form when all $a_i$ are in $[-(2^{52}-1),..,2^{52}-1]$ (not
 ### 2. Addition
 
 When coefficients $a_i < 2^{63}-1$
-$$
-\text{res}[0] = a[0] + b[0] \\
-\text{res}[1] = a[1] + b[1] \\
-\text{res}[2] = a[2] + b[2] \\
-\text{res}[3] = a[3] + b[3] \\
-\text{res}[4] = a[4] + b[4]
-$$
-## 3. Subtraction
+```
+res[0] = a[0] + b[0]
+res[1] = a[1] + b[1]
+res[2] = a[2] + b[2]
+res[3] = a[3] + b[3]
+res[4] = a[4] + b[4]
+```
+### 3. Subtraction
 
 Use signed limbs and this can work fine. 
 
-## 4. Carry & Reduce mod p
+### 4. Carry & Reduce mod p
 
 Carry for the first $4$ limbs, like this:
-
-
-$$
-\begin{align*}
-\text{carry} &= a[0] \gg 51 \\
-a[1] &\mathrel{+}= \text{carry} \\
-\text{carry} &\ll= 51 \\
-a[0] &\mathrel{-}= \text{carry}
-\end{align*}
-$$
-
+```
+carry = a[0] >> 51
+a[1] += carry
+carry <<== 51
+a[0] -= carry
+```
 Add the carry to the next limbs and make sure the original limb is reduces to 51 bits. 
 
 Since $p = 2^{255}-19$ we carry and reduce last limb like this:
 
-$$
-\begin{align*}
-\text{carry} &= a[4] \gg 51 \\
-a[0] &\mathrel{+}= 19 \cdot \text{carry} \\
-\text{carry} &\ll= 51 \\
-a[4] &\mathrel{-}= \text{carry}
-\end{align*}
-$$
+```
+carry = a[4] >> 51
+a[0] += 19*carry
+carry <<== 51
+a[4] -= carry
+```
+
 Because we reduced in the first few steps to 51 bits, and $19\cdot carry$ has an absolute value of at most 17 bits (since carry itself is max 12 bits), $a[0]+19\cdot carry$ is still in $[-(2^{52}-1),..,2^{52}-1]$.  
 
-## 5. Multiplication
+### 5. Multiplication
 
 $A = \sum_{n=0}^{4} a_i2^{51\cdot i}$ and $B = \sum_{n=0}^{4} b_i2^{51\cdot i}$
 
@@ -95,12 +89,13 @@ r[8] = (int128) a[4]*b[4];
 
 Multiplication gives $R = \sum_{n=0}^{8} r_i2^{51\cdot i}$ with $r_i$ up to 107 bits, which no longer fits in a 64 bit integer. Make sure to use a 128 bit integer. 
 
-1: Reduce from 9 coefficients to 5 with:
-$$
-r0=r0+19\cdot r5\\
-r1=r1+19\cdot r6\\
-r2=r2+19\cdot r7\\
-r3=r3+19\cdot r8\\
-$$
+First, reduce from 9 coefficients to 5 with:
+
+```
+r0=r0+19*r5
+r1=r1+19*r6
+r2=r2+19*r7
+r3=r3+19*r8
+```
 
 Then carry, as before. After round 1 we have signed 64-bit integers. Therefore, we need a second round of carries to obtain reduced coefficients. 
